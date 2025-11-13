@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SF Hotels & Neighborhoods Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 280px;
+        }
+        .legend h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .legend-section {
+            margin-bottom: 15px;
+        }
+        .legend-section-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .legend-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        .neighborhood-marker { background: #3498db; }
+        .oakland-marker { background: #e67e22; }
+        .hotel-sf-marker { background: #27ae60; }
+        .hotel-other-marker { background: #9b59b6; }
+        
+        .leaflet-popup-content {
+            font-size: 15px;
+            margin: 10px;
+        }
+        .popup-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .popup-title a {
+            color: #2c3e50;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: border-bottom 0.2s ease;
+        }
+        .popup-title a:hover {
+            border-bottom: 2px solid #27ae60;
+        }
+        .popup-location {
+            color: #7f8c8d;
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+        .popup-price {
+            color: #27ae60;
+            font-weight: 600;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="legend">
+        <h3>📍 Map Legend</h3>
+        <div class="legend-section">
+            <div class="legend-section-title">Desired Neighborhoods</div>
+            <div class="legend-item">
+                <div class="legend-marker neighborhood-marker"></div>
+                <span>SF Neighborhoods</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-marker oakland-marker"></div>
+                <span>Oakland Area</span>
+            </div>
+        </div>
+        <div class="legend-section">
+            <div class="legend-section-title">Hotels</div>
+            <div class="legend-item">
+                <div class="legend-marker hotel-sf-marker"></div>
+                <span>SF Hotels</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-marker hotel-other-marker"></div>
+                <span>Bay Area Hotels</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map centered on SF Bay Area
+        const map = L.map('map').setView([37.7599, -122.4148], 12);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Define neighborhood locations
+        const neighborhoods = [
+            { name: 'The Mission', lat: 37.7599, lng: -122.4148, type: 'sf' },
+            { name: 'Potrero Hill', lat: 37.7589, lng: -122.3984, type: 'sf' },
+            { name: 'Noe Valley', lat: 37.7488, lng: -122.4313, type: 'sf' },
+            { name: 'Bernal Heights', lat: 37.7419, lng: -122.4169, type: 'sf' },
+            { name: 'Lower Haight', lat: 37.7719, lng: -122.4308, type: 'sf' },
+            { name: 'Glen Park', lat: 37.7333, lng: -122.4341, type: 'sf' },
+            { name: 'Lake Merritt', lat: 37.8044, lng: -122.2544, type: 'oakland' }
+        ];
+
+        // Define hotel locations
+        const hotels = [
+            { 
+                name: 'The Bartlett Hotel', 
+                location: 'Union Square',
+                lat: 37.7867, 
+                lng: -122.4089,
+                price: '~$200-250/night',
+                type: 'sf',
+                url: 'https://www.thebartletthotel.com/'
+            },
+            { 
+                name: 'Inn Above Tide', 
+                location: 'Sausalito',
+                lat: 37.8590, 
+                lng: -122.4852,
+                price: '~$685-775/night',
+                type: 'other',
+                url: 'https://innabovetide.com/'
+            },
+            { 
+                name: 'The Jay', 
+                location: 'Financial District',
+                lat: 37.7916, 
+                lng: -122.4011,
+                price: '~$247-372/night',
+                type: 'sf',
+                url: 'https://jayhotelsf.com/'
+            },
+            { 
+                name: 'Palace Hotel', 
+                location: 'Downtown SF',
+                lat: 37.7886, 
+                lng: -122.4016,
+                price: '~$322-407/night',
+                type: 'sf',
+                url: 'https://www.marriott.com/en-us/hotels/sfolc-palace-hotel-a-luxury-collection-hotel-san-francisco/overview/'
+            },
+            { 
+                name: 'Hotel Kabuki', 
+                location: 'Japantown',
+                lat: 37.7851, 
+                lng: -122.4306,
+                price: '~$209-323/night',
+                type: 'sf',
+                url: 'https://www.hyatt.com/jdv-by-hyatt/en-US/sfojd-jdv-hotel-kabuki'
+            },
+            { 
+                name: 'Berkeley City Club', 
+                location: 'Berkeley',
+                lat: 37.8688, 
+                lng: -122.2585,
+                price: '~$213-322/night',
+                type: 'other',
+                url: 'https://www.berkeleycityclub.com/'
+            },
+            { 
+                name: 'Kasa The Hotel Castro', 
+                location: 'Castro District',
+                lat: 37.7609, 
+                lng: -122.4350,
+                price: '~$186-424/night',
+                type: 'sf',
+                url: 'https://kasa.com/properties/kasa-the-hotel-castro-san-francisco'
+            }
+        ];
+
+        // Create custom icons
+        const neighborhoodIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background-color: #3498db; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+
+        const oaklandIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background-color: #e67e22; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+
+        const hotelSFIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background-color: #27ae60; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4);"></div>',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+
+        const hotelOtherIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background-color: #9b59b6; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4);"></div>',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+
+        // Add neighborhood markers
+        neighborhoods.forEach(neighborhood => {
+            const icon = neighborhood.type === 'oakland' ? oaklandIcon : neighborhoodIcon;
+            const suffix = neighborhood.type === 'oakland' ? '<br><em>Oakland</em>' : '';
+            
+            L.marker([neighborhood.lat, neighborhood.lng], { icon: icon })
+                .addTo(map)
+                .bindPopup(`<div class="popup-title">${neighborhood.name}</div>${suffix}`);
+        });
+
+        // Add hotel markers
+        hotels.forEach(hotel => {
+            const icon = hotel.type === 'sf' ? hotelSFIcon : hotelOtherIcon;
+            
+            L.marker([hotel.lat, hotel.lng], { icon: icon })
+                .addTo(map)
+                .bindPopup(`
+                    <div class="popup-title">🏨 <a href="${hotel.url}" target="_blank">${hotel.name}</a></div>
+                    <div class="popup-location">${hotel.location}</div>
+                    <div class="popup-price">${hotel.price}</div>
+                `);
+        });
+
+        // Adjust map bounds to show all markers
+        const allLocations = [
+            ...neighborhoods.map(n => [n.lat, n.lng]),
+            ...hotels.map(h => [h.lat, h.lng])
+        ];
+        const bounds = L.latLngBounds(allLocations);
+        map.fitBounds(bounds, { padding: [50, 50] });
+    </script>
+</body>
+</html>
